@@ -1,5 +1,6 @@
 import random
 import string
+from  custom_hash import custom_hash256
 
 class User:
     def __init__(self, name: str, public_key: str, balance: int):
@@ -14,6 +15,8 @@ class User:
 def generate_public_key(name: str) -> str:
     """PK hash+salt (TBD: ikelti nuosava hasha ir returninti)"""
     salt = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+    key_input = f"{name}{salt}"
+    custom_hash256(key_input)
     
 def generate_users(n: int = 1000):
     """sugeneruot n vartotoju"""
