@@ -7,12 +7,12 @@ class Transaction:
         self.sender = sender
         self.receiver = receiver
         self.amount = amount
-        self.timestamp = time.time()
+        self.timestamp = int(time.time())
         self.tx_id = self.compute_hash()
 
     def compute_hash(self) -> str:
         """create random transaction id"""
-        data = f"{self.sender}{self.receiver}{self.amount}{self.timestamp}"
+        data = f"{self.sender}|{self.receiver}|{self.amount}|{self.timestamp}"
         return custom_hash256(data)
 
     def __repr__(self):

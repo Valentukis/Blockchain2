@@ -1,6 +1,8 @@
 import random
 import string
 from  custom_hash import custom_hash256
+from typing import Dict, Iterable, Tuple
+
 
 class User:
     def __init__(self, name: str, public_key: str, balance: int):
@@ -27,6 +29,39 @@ def generate_users(n: int = 1000):
         balance = random.randint(100, 1_000_000)
         users.append(User(name, pub, balance))
     return users
+
+def update_balances(transactions: Iterable, users_by_key: Dict[str, "User"]) -> Tuple[int, int]:
+    """
+    paskyros model update.
+    skip tx jei siuntejas neturi pakankamai fondu/yra nezinomas
+    """
+    applied = 0
+    skipped = 0
+    for tx in transactions:
+        s = users_by_key.get(tx.sender)
+        r = users_by_key.get(tx.receiver)
+
+        if s is None or r is None:
+            print(f"Skipping tx {tx.tx_id[:8]}…: unknown participant.")
+            skipped += 1
+            continue
+
+        if tx.amount <= 0:
+            print(f"Skipping tx {tx.tx_id[:8]}…: non-positive amount ({tx.amount}).")
+            skipped += 1
+            continue
+
+        if s.balance < tx.amount:
+            print(f"Skipping tx {tx.tx_id[:8]}…: insufficient funds for {s.name} "
+                  f"(bal={s.balance}, amt={tx.amount}).")
+            skipped += 1
+            continue
+
+        s.balance -= tx.amount
+        r.balance += tx.amount
+        applied += 1
+
+    return applied, skipped
 
 if __name__ == "__main__": #for debug
     users = generate_users(5)
