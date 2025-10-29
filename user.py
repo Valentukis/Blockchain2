@@ -8,12 +8,12 @@ class User:
         self.public_key = public_key
         self.balance = balance
 
-    def __repr__(self):
-        return f"{self.name} ({self.public_key[:8]}...) : {self.balance} coins"
+    def __repr__(self): 
+        return f"{self.name} ({self.public_key[:8]}...) : {self.balance} coins" #Printinam pirmus 8 kad konsoles neuzkist, jei ka pakeisim
 
 
 def generate_public_key(name: str) -> str:
-    """PK hash+salt (TBD: ikelti nuosava hasha ir returninti)"""
+    """generuoti Public key"""
     salt = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
     key_input = f"{name}{salt}"
     return custom_hash256(key_input)
