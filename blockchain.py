@@ -1,6 +1,8 @@
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, TYPE_CHECKING
+if TYPE_CHECKING:
+    from user import User
 from block import Block
-from custom_hash import custom_hash
+from custom_hash import custom_hash256
 from transaction import Transaction
 from user import update_balances
 
@@ -20,7 +22,7 @@ class Blockchain:
             version=self.version,
             difficulty=self.difficulty,
         )
-        # Make the genesis hash deterministic without PoW (or do a quick PoW if you prefer)
+        # padarom genezini hash deterministini
         genesis.hash = genesis.compute_hash()
         self.chain.append(genesis)
         print(f"✅ Genesis block created: idx=0, hash={genesis.hash[:12]}…, tx=0")

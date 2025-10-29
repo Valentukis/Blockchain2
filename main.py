@@ -1,5 +1,5 @@
 from typing import List
-from generate_data import generate_users, generate_transactions  # your existing code
+from data_gen import generate_users, generate_transactions
 from blockchain import Blockchain
 from transaction import Transaction
 
@@ -20,9 +20,9 @@ def main():
     # Pool removal function (captures tx_pool by closure)
     def remove_from_pool(mined: List[Transaction]):
         mined_ids = {t.tx_id for t in mined}
-        nonlocal tx_pool
-        tx_pool = [t for t in tx_pool if t.tx_id not in mined_ids]
+        tx_pool[:] = [t for t in tx_pool if t.tx_id not in mined_ids]  # in-place update
         print(f"🧹 Removed {len(mined)} tx from pool. Remaining: {len(tx_pool)}")
+
 
     bc = Blockchain(difficulty=DIFFICULTY, version="v0.1")
     bc.create_genesis_block()

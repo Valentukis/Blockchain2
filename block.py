@@ -1,24 +1,26 @@
 from dataclasses import dataclass, field
 from typing import List, Optional
 from datetime import datetime, timezone
-from custom_hash import custom_hash  # your 256-bit hex hash
+from custom_hash import custom_hash256
 from transaction import Transaction
 
-# Small helper: either a real Merkle root or a simple tx_id aggregate
-def merkle_root_hash(tx_ids: List[str]) -> str:
-    """Real Merkle root (pairs, hash concat); falls back to single hash if len==1.
-    Deterministic and independent of Python's randomness."""
+def merkle_root_hash(tx_ids: list[str]) -> str:
+    """
+    Compute a Merkle root hash for a list of transaction IDs.
+    If odd number of txs, duplicate the last one (Bitcoin style).
+    Returns a single 256-bit hex string.
+    """
     if not tx_ids:
-        return custom_hash("")
+        return custom_hash256("")
 
-    layer = tx_ids[:]
+    layer = tx_ids[:]  # copy
     while len(layer) > 1:
-        nxt = []
+        next_layer = []
         for i in range(0, len(layer), 2):
             a = layer[i]
-            b = layer[i+1] if i+1 < len(layer) else a  # duplicate last if odd
-            nxt.append(custom_hash(a + b))
-        layer = nxt
+            b = layer[i + 1] if i + 1 < len(layer) else a  # duplicate if odd
+            next_layer.append(custom_hash256(a + b))
+        layer = next_layer
     return layer[0]
 
 
@@ -44,7 +46,7 @@ class BlockHeader:
         ])
 
     def hash(self) -> str:
-        return custom_hash(self.serialize())
+        return custom_hash256(self.serialize())
 
 
 @dataclass
@@ -63,8 +65,6 @@ class Block:
 
     def __post_init__(self):
         tx_ids = [tx.tx_id for tx in self.transactions]
-        # If you want the simpler variant allowed by the assignment, replace with:
-        # self.tx_root = custom_hash("".join(tx_ids))
         self.tx_root = merkle_root_hash(tx_ids)
 
     @property
