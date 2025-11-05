@@ -53,7 +53,9 @@ class Blockchain:
     block_reward: int = 50,
     mining_time_limit: int = 5,
     ):
-        """Simulate decentralized mining competition:"""
+        """Simulate decentralized mining competition with parallel threads"""
+        import threading
+
         if not self.chain: #first block in chain
             self.create_genesis_block()
 
@@ -65,10 +67,9 @@ class Blockchain:
             print("No transactions to mine.")
             return None
 
-        # === 1) Prepare candidate blocks ===
+        # 1) Prepare candidate blocks
         candidates = []
         for miner in miners:
-            # sample 100 tx or less if pool smaller
             sample_size = min(100, len(tx_pool))
             tx_batch = random.sample(tx_pool, sample_size)
             # krc laukiu andriaus verification
@@ -82,31 +83,39 @@ class Blockchain:
             )
             candidates.append((miner, block))
 
-        print(f"\nStarting mining round with {num_miners} miners "
-            f"({len(tx_pool)} pending tx, diff={self.difficulty})")
+        print(f"\nStarting parallel mining round with {num_miners} miners "
+              f"({len(tx_pool)} pending tx, diff={self.difficulty})")
         print(f"   Each miner works for {mining_time_limit}s window...")
 
-        start_time = time.time()
-        winner = None
+        found_event = threading.Event()
+        result_holder = []
 
-        #2) Mining competition loop
-        while (time.time() - start_time) < mining_time_limit:
-            for miner, block in candidates:
-                # compute hash for current nonce
+        #2) Each miner mines in a separate thread
+        def miner_worker(miner, block):
+            target_prefix = "0" * self.difficulty
+            start_time = time.time()
+            while not found_event.is_set() and (time.time() - start_time < mining_time_limit):
                 h = block.compute_hash()
-                if h.startswith("0" * self.difficulty):
-                    winner = (miner, block, h)
-                    break
+                if h.startswith(target_prefix):
+                    found_event.set()
+                    result_holder.append((miner, block, h))
+                    return
                 block.nonce += 1  # next try
-            if winner:
-                break
 
-        # check results
-        if not winner:
-            print("⏱ No miner found a valid hash within time window.")
+        threads = []
+        for miner, block in candidates:
+            t = threading.Thread(target=miner_worker, args=(miner, block))
+            t.start()
+            threads.append(t)
+
+        for t in threads:
+            t.join()
+
+        if not result_holder:
+            print("TIMES UP: No miner found a valid hash within time window.")
             return None
 
-        miner, block, found_hash = winner
+        miner, block, found_hash = result_holder[0]
         block.hash = found_hash
 
         print(f"Miner {miner.name} mined block #{block.index}!")
@@ -126,9 +135,9 @@ class Blockchain:
         miner.balance += block_reward + fees
 
         print(f"Miner reward: {block_reward} + {fees} fees = "
-            f"{block_reward + fees} coins")
+              f"{block_reward + fees} coins")
         print(f"Block #{block.index} added. Chain length = {len(self.chain)} "
-            f"({applied} tx applied, {skipped} skipped)")
+              f"({applied} tx applied, {skipped} skipped)")
         return block
 
     def is_valid_chain(self) -> bool:
