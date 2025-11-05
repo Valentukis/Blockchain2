@@ -5,6 +5,7 @@ from block import Block
 from custom_hash import custom_hash256
 from transaction import Transaction
 from user import update_balances
+import time, random
 
 class Blockchain:
     def __init__(self, difficulty: int = 3, version: str = "v0.1"):
@@ -44,41 +45,90 @@ class Blockchain:
         return True
 
     def mine_next_block(
-        self,
-        tx_batch: List[Transaction],
-        users_by_key: Dict[str, "User"],   # forward ref
-        remove_from_pool: callable,        # function to remove mined txs from the pool
-    ) -> Optional[Block]:
-        """Form, mine, validate, append, and apply balances."""
-        if not self.chain:
+    self,
+    tx_pool: list,
+    users_by_key: dict,
+    remove_from_pool: callable,
+    miners: list,
+    block_reward: int = 50,
+    mining_time_limit: int = 5,
+    ):
+        """Simulate decentralized mining competition:"""
+        if not self.chain: #first block in chain
             self.create_genesis_block()
 
-        idx = len(self.chain)
-        prev_hash = self.last_block.hash if self.last_block else "0"*64
+        prev_hash = self.last_block.hash if self.last_block else "0" * 64
+        block_index = len(self.chain)
+        num_miners = len(miners)
 
-        block = Block(
-            index=idx,
-            transactions=tx_batch,
-            prev_hash=prev_hash,
-            version=self.version,
-            difficulty=self.difficulty,
-        )
-
-        print(f"\n⛏️  Mining block #{block.index} (tx={len(tx_batch)}, diff={self.difficulty})")
-        print(f"   prev_hash = {prev_hash[:16]}…  tx_root = {block.tx_root[:16]}…")
-        found = block.mine()
-        print(f"✅ Block #{block.index} mined! nonce={block.nonce}  hash={found}")
-
-        if not self.add_block(block):
-            print("❌ Mining succeeded but adding block failed.")
+        if not tx_pool:
+            print("No transactions to mine.")
             return None
 
-        # Apply state updates (account model)
-        update_balances(block.transactions, users_by_key)
-        # Remove mined tx from the pool
+        # === 1) Prepare candidate blocks ===
+        candidates = []
+        for miner in miners:
+            # sample 100 tx or less if pool smaller
+            sample_size = min(100, len(tx_pool))
+            tx_batch = random.sample(tx_pool, sample_size)
+            # krc laukiu andriaus verification
+            # tx_batch = [t for t in tx_batch if verified_andriaus()]
+            block = Block(
+                index=block_index,
+                transactions=tx_batch,
+                prev_hash=prev_hash,
+                version=self.version,
+                difficulty=self.difficulty,
+            )
+            candidates.append((miner, block))
+
+        print(f"\nStarting mining round with {num_miners} miners "
+            f"({len(tx_pool)} pending tx, diff={self.difficulty})")
+        print(f"   Each miner works for {mining_time_limit}s window...")
+
+        start_time = time.time()
+        winner = None
+
+        #2) Mining competition loop
+        while (time.time() - start_time) < mining_time_limit:
+            for miner, block in candidates:
+                # compute hash for current nonce
+                h = block.compute_hash()
+                if h.startswith("0" * self.difficulty):
+                    winner = (miner, block, h)
+                    break
+                block.nonce += 1  # next try
+            if winner:
+                break
+
+        # check results
+        if not winner:
+            print("⏱ No miner found a valid hash within time window.")
+            return None
+
+        miner, block, found_hash = winner
+        block.hash = found_hash
+
+        print(f"Miner {miner.name} mined block #{block.index}!")
+        print(f"   hash={found_hash[:16]}…  nonce={block.nonce}")
+
+        # 4) Validate and append 
+        if not self.add_block(block):
+            print("Block failed chain validation.")
+            return None
+
+        # 5) Apply state changes 
+        applied, skipped = update_balances(block.transactions, users_by_key)
         remove_from_pool(block.transactions)
 
-        print(f"📦 Block #{block.index} added. Chain length = {len(self.chain)}")
+        # 6) Reward the winning miner 
+        fees = sum(getattr(tx, "fee", 0) for tx in block.transactions)
+        miner.balance += block_reward + fees
+
+        print(f"Miner reward: {block_reward} + {fees} fees = "
+            f"{block_reward + fees} coins")
+        print(f"Block #{block.index} added. Chain length = {len(self.chain)} "
+            f"({applied} tx applied, {skipped} skipped)")
         return block
 
     def is_valid_chain(self) -> bool:
