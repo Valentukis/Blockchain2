@@ -141,8 +141,5 @@ struktūrą ir vientisumo patikrinimą.
 Sistema leidžia:
 - Modeliuoti decentralizuotą blokų grandinę su keliais kasėjais;  
 - Aptikti bet kokius duomenų pakeitimus („tamper detection“);  
-- Pritaikyti sprendimą tiek sąskaitų, tiek UTXO modeliams ateityje.
-
-Projektas ne tik demonstruoja teorinius blockchain pagrindus, bet ir pateikia praktiškai veikiantį, 
-suvaliduotą modelį, kuris gali būti išplėstas tolesniam vystymui ar edukacijai.
+- Pritaikyti lengvai keičiamą, veikiantį sprendimą tiek paskyrų, tiek UTXO modeliams.
 

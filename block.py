@@ -109,14 +109,34 @@ class Block:
             "nonce": self.nonce,
             "difficulty": self.difficulty,
         }
-
+    
     def to_dict(self) -> dict:
+        def tx_to_primitive(t):
+            if hasattr(t, "to_dict"):
+                return t.to_dict()
+            # Fallback for account-model Transaction
+            return {
+                "type": "account",
+                "tx_id": getattr(t, "tx_id", None),
+                "timestamp": getattr(t, "timestamp", None),
+                "sender": getattr(t, "sender", None),
+                "receiver": getattr(t, "receiver", None),
+                "amount": getattr(t, "amount", None),
+            }
+
         return {
             "index": self.index,
             "hash": self.hash,
-            "header": self.header_dict(),
-            "transactions": [tx.__dict__ for tx in self.transactions],
+            "header": {
+                "prev_hash": self.prev_hash,
+                "version": self.version,
+                "difficulty": self.difficulty,
+                "nonce": self.nonce,
+                "tx_root": getattr(self, "tx_root", None),
+            },
+            "transactions": [tx_to_primitive(t) for t in self.transactions],
         }
+
 
     def is_valid_pow(self) -> bool:
         if self.hash is None:
