@@ -70,8 +70,18 @@ class Blockchain:
         if not self.verify_block(block, prev):
             print("❌ Block verification failed.")
             return False
+
         self.chain.append(block)
+
+    # 👇 summary line goes here (INSIDE the method, after append)
+        print(
+            f"   merkle_root={block.tx_root[:16]}… "
+            f"tx_count={len(block.transactions)} "
+            f"pow_ok={block.is_valid_pow()} "
+            f"merkle_ok={block.verify_merkle_root()}"
+        )
         return True
+
 
     
     def verify_block(self, block: Block, prev_block: Optional[Block]) -> bool:
@@ -114,31 +124,41 @@ class Blockchain:
         if not tx_pool:
             print("No transactions to mine.")
             return None
-
-                # 1) Prepare candidate blocks
+                # 1) Paruosiam candidate blocks
         candidates = []
         for miner in miners:
             sample_size = min(100, len(tx_pool))
+            if sample_size == 0:
+                continue
             tx_batch = random.sample(tx_pool, sample_size)
 
-            # Validate candidate transactions before mining
+            # Patikrinam candidate tranzakcijas pries mining'a
             valid, rejected = validate_transactions_account_model(tx_batch, users_by_key)
             if rejected:
                 print(f"ℹ️  Candidate filtering: {len(valid)} valid, {len(rejected)} rejected (balance/tx_id).")
-
-            # Skip this candidate entirely if no valid transactions remain
             if not valid:
                 continue
 
             block = Block(
                 index=block_index,
-                transactions=valid[:100],  # keep up to 100 verified transactions
+                transactions=valid[:100],
                 prev_hash=prev_hash,
                 version=self.version,
                 difficulty=self.difficulty,
             )
             candidates.append((miner, block))
 
+        
+        if not candidates:
+            # Pertikrinam visa pool'a, jei viskas neteisinga - metam bloka
+            valid_all, rejected_all = validate_transactions_account_model(tx_pool, users_by_key)
+            if not valid_all:
+                invalid = [tx for (_, tx) in rejected_all]
+                if invalid:
+                    print(f"⚠️  All remaining {len(tx_pool)} tx are invalid "
+                          f"({len(invalid)} rejected). Dropping them and ending mining.")
+                    remove_from_pool(invalid) 
+            return None
         print(f"\nStarting parallel mining round with {num_miners} miners "
               f"({len(tx_pool)} pending tx, diff={self.difficulty})")
         print(f"   Each miner works for {mining_time_limit}s window...")
@@ -146,7 +166,7 @@ class Blockchain:
         found_event = threading.Event()
         result_holder = []
 
-        #2) Each miner mines in a separate thread
+        #2) kiekvienas mineris dirba skirtingose gijose
         def miner_worker(miner, block):
             target_prefix = "0" * self.difficulty
             start_time = time.time()
@@ -156,7 +176,7 @@ class Blockchain:
                     found_event.set()
                     result_holder.append((miner, block, h))
                     return
-                block.nonce += 1  # next try
+                block.nonce += 1 
 
         threads = []
         for miner, block in candidates:
@@ -186,7 +206,7 @@ class Blockchain:
         applied, skipped = update_balances(block.transactions, users_by_key)
         remove_from_pool(block.transactions)
 
-        # 6) Reward the winning miner 
+        # 6) Laimejes mineris gauna coins
         fees = sum(getattr(tx, "fee", 0) for tx in block.transactions)
         miner.balance += block_reward + fees
 

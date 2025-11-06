@@ -7,11 +7,11 @@ from blockchain import Blockchain
 from transaction import Transaction
 
 
-# === parameters you can tweak ===
-BATCH_SIZE = 100           # transactions per block candidate
-DIFFICULTY = 3             # "000" prefix requirement
-BLOCK_REWARD = 50          # coins paid to miner
-MINING_TIME_LIMIT = 5      # seconds each round
+# === PARAMETRAI ===
+BATCH_SIZE = 100           # tranzakcijos per bloku kandidata
+DIFFICULTY = 3             # "000" prefix reikalavimas
+BLOCK_REWARD = 50          # monetu kiekis duotas mineriui
+MINING_TIME_LIMIT = 5      # laiko limitas sekundemis
 
 
 def chunked(lst: List, n: int):
@@ -21,14 +21,14 @@ def chunked(lst: List, n: int):
 
 
 def main():
-    print("🚀 Generating data…")
-    users = generate_users(100)  # fewer users for faster tests
-    users_by_key = {u.public_key: u for u in users}
-    tx_pool: List[Transaction] = generate_transactions(users, 500)
-    print(f"✅ Users: {len(users)}  |  Transactions: {len(tx_pool)}")
+    random.seed(42) # testavimui
 
-    # Choose 3 miners randomly
-    miners = random.sample(users, 3)
+    print("🚀 Generating data…")
+    users = generate_users(10)
+    users_by_key = {u.public_key: u for u in users}
+    tx_pool: List[Transaction] = generate_transactions(users, 50)
+    print(f"✅ Users: {len(users)}  |  Transactions: {len(tx_pool)}")
+    miners = random.sample(users, 5)
     print("\n👷 Selected miners:")
     for m in miners:
         print(f"   • {m.name} ({m.public_key[:10]}…)")
@@ -44,24 +44,40 @@ def main():
     bc.create_genesis_block()
 
     # Mine until all transactions are processed
-    block_count = 0
+    time_limit = MINING_TIME_LIMIT
     while tx_pool:
-        bc.mine_next_block(
+        print(f"\n⛏️  Starting mining round (time limit = {time_limit}s)…")
+        mined_block = bc.mine_next_block(
             tx_pool=tx_pool,
             users_by_key=users_by_key,
             remove_from_pool=remove_from_pool,
             miners=miners,
             block_reward=BLOCK_REWARD,
-            mining_time_limit=MINING_TIME_LIMIT,
-        )
-        block_count += 1
+            mining_time_limit=time_limit,
+    )
 
-    # === final summary ===
+        if mined_block is None:
+            time_limit *= 2
+            print(f"⏱️  No block mined — increasing time limit to {time_limit}s and retrying.")
+            continue
+        time_limit = MINING_TIME_LIMIT
+
+    for b in bc.chain[1:]:
+        assert b.is_valid_pow()
+        assert b.verify_merkle_root()
+
+
+    # === Galutinis isvedimas ===
     print("\n🔎 Final chain check:", "valid ✅" if bc.is_valid_chain() else "invalid ❌")
+    assert bc.is_valid_chain(), "Chain invalid after mining"
     print(f"⛓️  Total blocks (incl. genesis): {len(bc.chain)}")
     print("🧾 Last 3 blocks:")
     for b in bc.chain[-3:]:
         print(f"  • #{b.index} | hash={b.hash[:16]}… | tx={len(b.transactions)} | nonce={b.nonce}")
+
+    print("\n💰 Miner balances (after rewards):")
+    for m in miners:
+        print(f"  {m.name}: {m.balance} coins")
 
     # Save optional JSON snapshot
     # import json
