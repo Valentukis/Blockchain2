@@ -64,14 +64,85 @@ Veikianti sistema, galinti sukurti vartotojus, generuoti transakcijas, jungti ju
 - Pagrindinė simuliacija per `main.py`, valdant baseiną (`tx_pool`) ir kasėjų veiklą.  
 
 **Rezultatas:**  
-Visiškai funkcionuojanti, decentralizuota blokų grandinės sistema su keliais kasėjais, Proof-of-Work, Merkle medžiu, blokų validacija ir balansų atnaujinimu.
+Visiškai funkcionuojanti, decentralizuota blokų grandinės sistema su keliais kasėjais, Proof-of-Work, Merkle medžiu, blokų validacija ir balansų atnaujinimu, lengvu perėjimu tarp UTXO ir paprasto modelio.
 
 ### Veikimo/paleidimo pavyzdžiai
-sita tau palieku garbe
+Toliau pateiktas pavyzdys rodo, kaip veikia sistema realiu paleidimo metu (python main.py).
+Čia matoma:
+
+- Vartotojų ir transakcijų generacija,
+
+- Kelių kasėjų konkurencija,
+
+- Bloko iškasimas (su „Proof-of-Work“),
+
+- Merkle šaknies validacija,
+
+- Grandinės vientisumo patikrinimas ir kasėjų balanso atnaujinimas.
+
+![alt text](image-1.png)
+
+![alt text](image-2.png)
+
+![alt text](image-3.png)
+
+Rezultatas:
+
+- Visi bloko hash atitinka „000“ prefiksą (sėkmingas PoW).
+
+- Kiekvienas blokas turi galiojantį merkle_root.
+
+- Grandinė pažymėta kaip valid (✅), vadinasi, visi blokai nuosekliai susieti ir verifikuoti.
+
+- Kasėjų balansas padidėjo atsižvelgiant į iškastus blokus bei atlygį.
+
+Tai galima toliau patikrinti integralumo teste (python tamper_test.py):
+
+![alt text](image-5.png)
+
+
 
 ### Naudojimosi instrukcija
-tau irgi
+Viskas buvo paruošta naudotojo patogumui, tad programos paleidimas, skaitymas, buvo padaryta kiek įmanoma (bent pagal mūsų kompetencijas..) paprasčiau.
+
+Norint paleisti programą, terminale įveskite komandą:
+
+```bash
+python main.py
+```
+Jei norite ištestuoti, kaip vyksta visi patikrinimai, verifikacijos, tereikia apačioje main.py faile atsikomentuoti 
+```bash
+  # tamper testui, kitiems panaudojimams blockchaino kaip json failo
+   # import json
+   # with open("blockchain_v0_2.json", "w") as f:
+    #    json.dump(bc.to_dict(), f, indent=2)
+   # print("Issaugota blockchain_v0_2.json")
+```
+Tada dar kartą paleisti paprastai programą, kad būtų sukurtas blockchain'o json failas:
+
+```bash
+python main.py
+```
+Ir pagaliau suvesti:
+
+```bash
+python tamper_test.py
+```
+Verta paminėti, kad main.py taipogi yra parametrai, kurie detaliau aprašyti tenais, ir yra pakeičiami Jūsų nuožiūrai.
+
+![alt text](image-4.png)
 
 ### Išvados
-all u
+
+Projektas sėkmingai įgyvendina pagrindinius „blockchain“ veikimo principus: 
+transakcijų kūrimą, blokų validaciją, „Proof-of-Work“ kasimą, „Merkle Tree“ 
+struktūrą ir vientisumo patikrinimą.  
+
+Sistema leidžia:
+- Modeliuoti decentralizuotą blokų grandinę su keliais kasėjais;  
+- Aptikti bet kokius duomenų pakeitimus („tamper detection“);  
+- Pritaikyti sprendimą tiek sąskaitų, tiek UTXO modeliams ateityje.
+
+Projektas ne tik demonstruoja teorinius blockchain pagrindus, bet ir pateikia praktiškai veikiantį, 
+suvaliduotą modelį, kuris gali būti išplėstas tolesniam vystymui ar edukacijai.
 

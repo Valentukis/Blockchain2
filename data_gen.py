@@ -8,7 +8,7 @@ def generate_transactions(users, n=10000):
     for _ in range(n):
         sender = random.choice(users)
         receiver = random.choice(users)
-        while receiver == sender:  # prevent self-send
+        while receiver == sender:  # kad negaletu sau siust
             receiver = random.choice(users)
 
         amount = random.randint(1, sender.balance)

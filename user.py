@@ -63,7 +63,7 @@ def update_balances(transactions: Iterable, users_by_key: Dict[str, "User"]) -> 
 
     return applied, skipped
 
-if __name__ == "__main__": #for debug
+if __name__ == "__main__": # debuginimui
     users = generate_users(5)
     for u in users:
         print(u)
