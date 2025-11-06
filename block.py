@@ -67,6 +67,10 @@ class Block:
         tx_ids = [tx.tx_id for tx in self.transactions]
         self.tx_root = merkle_root_hash(tx_ids)
 
+    def verify_merkle_root(self) -> bool:
+        recomputed = merkle_root_hash([tx.tx_id for tx in self.transactions])
+        return recomputed == self.tx_root
+
     @property
     def header(self) -> BlockHeader:
         return BlockHeader(

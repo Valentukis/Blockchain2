@@ -7,6 +7,37 @@ from transaction import Transaction
 from user import update_balances
 import time, random
 
+def validate_transactions_account_model(tx_list, users_by_key):
+    """
+    Pre-validate a candidate batch using the account model.
+    Checks: tx_id correctness, known parties, positive amount, and balance (on a temp snapshot).
+    Returns: (valid_tx_list, rejected_list_of_(reason, tx)).
+    """
+    valid, rejected = [], []
+    temp_bal = {k: u.balance for k, u in users_by_key.items()}
+
+    for tx in tx_list:
+        if not getattr(tx, "verify_id", None) or not tx.verify_id():
+            rejected.append(("bad_tx_id", tx))
+            continue
+        s = users_by_key.get(tx.sender)
+        r = users_by_key.get(tx.receiver)
+        if s is None or r is None:
+            rejected.append(("unknown_party", tx))
+            continue
+        if tx.amount <= 0:
+            rejected.append(("non_positive", tx))
+            continue
+        if temp_bal[tx.sender] < tx.amount:
+            rejected.append(("insufficient", tx))
+            continue
+        temp_bal[tx.sender] -= tx.amount
+        temp_bal[tx.receiver] += tx.amount
+        valid.append(tx)
+
+    return valid, rejected
+
+
 class Blockchain:
     def __init__(self, difficulty: int = 3, version: str = "v0.1"):
         self.difficulty = difficulty
@@ -34,15 +65,32 @@ class Blockchain:
         return self.chain[-1] if self.chain else None
 
     def add_block(self, block: Block) -> bool:
-        """Validate linking and PoW; append if valid."""
-        if self.last_block and block.prev_hash != self.last_block.hash:
-            print("❌ Cannot add block: prev_hash mismatch.")
-            return False
-        if not block.is_valid_pow() and block.index != 0:
-            print("❌ Cannot add block: invalid PoW.")
+        """Validate full block before appending."""
+        prev = self.last_block
+        if not self.verify_block(block, prev):
+            print("❌ Block verification failed.")
             return False
         self.chain.append(block)
         return True
+
+    
+    def verify_block(self, block: Block, prev_block: Optional[Block]) -> bool:
+        if prev_block and block.prev_hash != prev_block.hash:
+            print("❌ verify_block: prev_hash mismatch")
+            return False
+        if not block.is_valid_pow():
+            print("❌ verify_block: invalid PoW")
+            return False
+        if not block.verify_merkle_root():
+            print("❌ verify_block: bad Merkle root")
+            return False
+    # pertikrinam transakciju id
+        for tx in block.transactions:
+            if not tx.verify_id():
+                print("❌ verify_block: tx id mismatch")
+                return False
+        return True
+
 
     def mine_next_block(
     self,
@@ -67,16 +115,24 @@ class Blockchain:
             print("No transactions to mine.")
             return None
 
-        # 1) Prepare candidate blocks
+                # 1) Prepare candidate blocks
         candidates = []
         for miner in miners:
             sample_size = min(100, len(tx_pool))
             tx_batch = random.sample(tx_pool, sample_size)
-            # krc laukiu andriaus verification
-            # tx_batch = [t for t in tx_batch if verified_andriaus()]
+
+            # Validate candidate transactions before mining
+            valid, rejected = validate_transactions_account_model(tx_batch, users_by_key)
+            if rejected:
+                print(f"ℹ️  Candidate filtering: {len(valid)} valid, {len(rejected)} rejected (balance/tx_id).")
+
+            # Skip this candidate entirely if no valid transactions remain
+            if not valid:
+                continue
+
             block = Block(
                 index=block_index,
-                transactions=tx_batch,
+                transactions=valid[:100],  # keep up to 100 verified transactions
                 prev_hash=prev_hash,
                 version=self.version,
                 difficulty=self.difficulty,
