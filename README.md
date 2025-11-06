@@ -62,9 +62,9 @@ Veikianti sistema, galinti sukurti vartotojus, generuoti transakcijas, jungti ju
 - Automatinis **genesis bloko** kūrimas su 64 nuliais kaip `prev_hash`.  
 - Patobulinta **grandinių validacija**, tikrinanti visų blokų nuoseklumą ir PoW.  
 - Pagrindinė simuliacija per `main.py`, valdant baseiną (`tx_pool`) ir kasėjų veiklą.  
-
-**Rezultatas:**  
-Visiškai funkcionuojanti, decentralizuota blokų grandinės sistema su keliais kasėjais, Proof-of-Work, Merkle medžiu, blokų validacija ir balansų atnaujinimu, lengvu perėjimu tarp UTXO ir paprasto modelio.
+- Naujoje versijoje pridėtas UTXO (Unspent Transaction Output) modelis, kuris imituoja „Bitcoin“ veikimo principą.
+Kiekvienas išėjimas (TxOut) gali būti sunaudotas tik vieną kartą, o kiekviena transakcija nurodo, kuriuos ankstesnius išėjimus (TxIn) ji panaudoja.
+Tai leidžia tiksliau pavaizduoti, kaip realiai veikia decentralizuoti tinklai.
 
 ### Veikimo/paleidimo pavyzdžiai
 Toliau pateiktas pavyzdys rodo, kaip veikia sistema realiu paleidimo metu (python main.py).
@@ -110,6 +110,10 @@ Norint paleisti programą, terminale įveskite komandą:
 ```bash
 python main.py
 ```
+Jei jus domina UTXO modelis ir jo paleidimas - jis yra visiškai identiškas:
+```bash
+python main.py utxo
+```
 Jei norite ištestuoti, kaip vyksta visi patikrinimai, verifikacijos, tereikia apačioje main.py faile atsikomentuoti 
 ```bash
   # tamper testui, kitiems panaudojimams blockchaino kaip json failo
@@ -132,14 +136,17 @@ Verta paminėti, kad main.py taipogi yra parametrai, kurie detaliau aprašyti te
 
 ![alt text](image-4.png)
 
-### Išvados
+**Rezultatai/Išvados:**  
+Visiškai funkcionuojanti, decentralizuota blokų grandinės sistema su keliais kasėjais, Proof-of-Work, Merkle medžiu, blokų validacija ir balansų atnaujinimu, lengvu perėjimu tarp UTXO ir paprasto modelio.
+Sistema dabar palaiko du veikimo režimus:
 
-Projektas sėkmingai įgyvendina pagrindinius „blockchain“ veikimo principus: 
-transakcijų kūrimą, blokų validaciją, „Proof-of-Work“ kasimą, „Merkle Tree“ 
-struktūrą ir vientisumo patikrinimą.  
+„Account“ (sąskaitų modelį) – supaprastintas, balanso pagrindu;
+
+„UTXO“ (Bitcoin tipo modelį) – kiekviena moneta turi savo unikalų išėjimą ir savininką.
+
+Tai leidžia praktiškai pavaizduoti, kaip „Bitcoin“ ir „Ethereum“ tipo grandinės skiriasi architektūriškai, bet veikia tuo pačiu „Proof-of-Work“ principu.
 
 Sistema leidžia:
 - Modeliuoti decentralizuotą blokų grandinę su keliais kasėjais;  
 - Aptikti bet kokius duomenų pakeitimus („tamper detection“);  
-- Pritaikyti lengvai keičiamą, veikiantį sprendimą tiek paskyrų, tiek UTXO modeliams.
-
+- Pritaikyti lengvai keičiamą, veikiantį sprendimą tiek account, tiek UTXO modeliams.
